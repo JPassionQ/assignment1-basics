@@ -1,6 +1,9 @@
 # train a BPE(byte-pair encoding) tokenizer
 import regex as re
 import time
+import multiprocessing
+from multiprocessing import Pool
+from .pretokenization_example import find_chunk_boundaries, pre_tokenize
 
 def train_bpe(
     input_path: str,
@@ -19,31 +22,23 @@ def train_bpe(
         idx += 1
     # pre-tokenization
     pre_tokens = {}
-    pattern = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    with open(input_path, "r") as f:
-        text = f.read()
-            # line = line.rstrip()
-            # handle the special_token
-            # st_time = time.time()
-            # for i in range(len(special_tokens)):
-            #     special_tokens[i] = re.escape(special_tokens[i])
-            # print(time.time() - st_time)
-            # 使用上面这段处理过程会造成处理时间指数上升
-        delimiter = "|".join(map(re.escape, special_tokens))
-        docs = re.split(delimiter, text)
-        for doc in docs:
-            matches = re.finditer(pattern, doc)
-            for match in matches:
-                pre_token = ()
-                token = match.group()
-                token = token.encode("utf-8")
-                # 这里不要用chr来做遍历的单位，因为一个Unicode字符可能对应多个字节
-                for i in range(len(token)):
-                    pre_token = pre_token + (token[i:i+1], )
-                if pre_token in pre_tokens:
-                    pre_tokens[pre_token] += 1
+    with open(input_path, "rb") as f:
+        num_processes = 4
+        boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
+        args = [] # args pass to pre_tokenize
+        for start, end in zip(boundaries[:-1], boundaries[1:]):
+            f.seek(start)
+            chunk = f.read(end - start).decode("utf-8", errors="ignore")
+            args.append((chunk, special_tokens))
+
+        with Pool(num_processes) as pool:
+            results = pool.starmap(pre_tokenize, args)
+        for sub_pre_tokens in results:
+            for k, v in sub_pre_tokens.items():
+                if k in pre_tokens:
+                    pre_tokens[k] += v
                 else:
-                    pre_tokens[pre_token] = 1
+                    pre_tokens[k] = v
     # compute bpe merges
     while idx < vocab_size:
         pair_to_cnt = {}
@@ -83,7 +78,6 @@ def train_bpe(
         idx += 1
     return vocab, merges
 
-
 if __name__=="__main__":
     vocab, merges = train_bpe(
         input_path="/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/tinystories_sample_5M.txt",
@@ -92,11 +86,3 @@ if __name__=="__main__":
     )
     # print(len(vocab))
     # print(len(merges))
-    print(vocab)
-    print(merges)
-    with open("/home/jingqi/CS336_Assignments/assignment1-basics/utils/vocab_merges.txt", "w") as f:
-        for merge in merges:
-            f.write(f"{merge}\n")
-    with open("/home/jingqi/CS336_Assignments/assignment1-basics/utils/vocab1.txt", "w") as f:
-        for k, v in vocab.items():
-            f.write(f"{v}\n")
