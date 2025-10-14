@@ -40,17 +40,15 @@ def train_bpe(
                 else:
                     pre_tokens[k] = v
     # compute bpe merges
+    pair_to_cnt = {}
+    for pre_token in pre_tokens.keys():
+        for b1, b2 in zip(pre_token[:-1], pre_token[1:]):
+            pair_of_bytes = (b1, b2)
+            if pair_of_bytes in pair_to_cnt:
+                pair_to_cnt[pair_of_bytes] += pre_tokens[pre_token]
+            else:
+                pair_to_cnt[pair_of_bytes] = pre_tokens[pre_token]
     while idx < vocab_size:
-        pair_to_cnt = {}
-        for pre_token in pre_tokens.keys():
-            for i, _ in enumerate(pre_token):
-                if i + 1 > len(pre_token) - 1:
-                    break
-                pair_of_bytes = (pre_token[i], pre_token[i + 1])
-                if pair_of_bytes in pair_to_cnt:
-                    pair_to_cnt[pair_of_bytes] += pre_tokens[pre_token]
-                else:
-                    pair_to_cnt[pair_of_bytes] = pre_tokens[pre_token]
         pair_to_cnt = dict(sorted(
             pair_to_cnt.items(),
             key = lambda item:  (item[1], item[0]),
@@ -59,6 +57,7 @@ def train_bpe(
         if not pair_to_cnt:
             break
         merged_pair = next(iter(pair_to_cnt))
+        pair_to_cnt[merged_pair] = 0
         merges.append(merged_pair)
         changed_pre_tokens = {}
         # merge the pair in the pre_tokens
@@ -66,8 +65,26 @@ def train_bpe(
             new_pre_token = ()
             i = 0
             while i < len(pre_token):
-                if i + 1 <= len(pre_token) - 1 and  pre_token[i] == merged_pair[0] and pre_token[i + 1] == merged_pair[1]:
+                if i + 1 < len(pre_token) and pre_token[i] == merged_pair[0] and pre_token[i + 1] == merged_pair[1]:
+                    # merge, add new pair, rm old pair
                     new_pre_token = new_pre_token + (pre_token[i] + pre_token[i + 1], )
+                    
+                    if i - 1 >= 0:
+                        old_pair = (pre_token[i - 1], pre_token[i])
+                        pair_to_cnt[old_pair] -= pre_tokens[pre_token]
+                        before_pair = (pre_token[i - 1], ) + (pre_token[i] + pre_token[i + 1], )
+                        if before_pair in pair_to_cnt:
+                            pair_to_cnt[before_pair] += pre_tokens[pre_token]
+                        else:
+                            pair_to_cnt[before_pair] = pre_tokens[pre_token]
+                    if i + 2 < len(pre_token):
+                        old_pair = (pre_token[i + 1], pre_token[i + 2])
+                        pair_to_cnt[old_pair] -= pre_tokens[pre_token]
+                        after_pair = (pre_token[i] + pre_token[i + 1],) + (pre_token[i + 2], )
+                        if after_pair in pair_to_cnt:
+                            pair_to_cnt[after_pair] += pre_tokens[pre_token]
+                        else:
+                            pair_to_cnt[after_pair] = pre_tokens[pre_token]
                     i += 2
                 else:
                     new_pre_token = new_pre_token + (pre_token[i], )
