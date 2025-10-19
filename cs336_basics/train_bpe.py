@@ -43,8 +43,10 @@ def train_bpe(
             for k, v in sub_pre_tokens.items():
                 pre_tokens[k] = pre_tokens.get(k, 0) + v
     # compute bpe merges
-    # 优化：初始统计，使用累加而非覆盖 dict.get(key, 0)
-    pair_to_cnt = {} # 统计词频
+    pair_to_cnt = {}
+    # 建立 pair -> 包含该 pair 的 pre_tokens 的索引
+    pair_to_tokens = {}
+
     for pre_token, count in pre_tokens.items():
         for b1, b2 in zip(pre_token[:-1], pre_token[1:]):
             # 跳过包含特殊 token 的pair
@@ -52,9 +54,13 @@ def train_bpe(
                 continue
             pair_of_bytes = (b1, b2)
             pair_to_cnt[pair_of_bytes] = pair_to_cnt.get(pair_of_bytes, 0) + count
+            # 记录哪些 token 包含这个 pair
+            if pair_of_bytes not in pair_to_tokens:
+                pair_to_tokens[pair_of_bytes] = set()
+            pair_to_tokens[pair_of_bytes].add(pre_token)
 
+    # NOTE: 可以使用数据结构 堆 来尽心优化，但是当字节对的频次相同的时候，需要按降序排列，在堆中不好处理
     while idx < vocab_size:
-        # 选择最大频 pair， 仍用排序但加入早停
         pair_to_cnt = dict(sorted(
             pair_to_cnt.items(),
             key = lambda item:  (item[1], item[0]),
@@ -73,40 +79,82 @@ def train_bpe(
         del pair_to_cnt[merged_pair]
         merges.append(merged_pair)
 
-        changed_pre_tokens = {}
-        # merge the pair in the pre_tokens
-        for pre_token in pre_tokens.keys():
-            new_pre_token = ()
-            i = 0
-            while i < len(pre_token):
-                if i + 1 < len(pre_token) and pre_token[i] == merged_pair[0] and pre_token[i + 1] == merged_pair[1]:
-                    # merge, add new pair, rm old pair
-                    merged_tok = pre_token[i] + pre_token[i + 1]
-                    new_pre_token = new_pre_token + (merged_tok, )
-                    
-                    if i - 1 >= 0:
-                        old_pair = (pre_token[i - 1], pre_token[i])
-                        if old_pair in pair_to_cnt:
-                            pair_to_cnt[old_pair] = max(0, pair_to_cnt.get(old_pair, 0) - pre_tokens[pre_token])
+        # 优化：只处理包含该 pair 的tokens，而非所有的tokens
+        affected_tokens = pair_to_tokens.get(merged_pair, set()).copy()
+        new_pre_tokens = {}
+        updated_pairs = {} # 记录只需要更新的 pairs
 
-                        before_pair = (pre_token[i - 1], merged_tok)
-                        if before_pair[0] not in special_bytes and before_pair[1] not in special_bytes:
-                            pair_to_cnt[before_pair] = pair_to_cnt.get(before_pair, 0) + pre_tokens[pre_token]
+        for pre_token in affected_tokens:
+            if pre_token not in pre_tokens:
+                continue
+            
+            count = pre_tokens[pre_token]
+            new_pre_token = []
+            i = 0
+            merged = False
+            
+            while i < len(pre_token):
+                if (i + 1 < len(pre_token) and
+                    pre_token[i] == merged_pair[0] and 
+                    pre_token[i + 1] == merged_pair[1]):
+                    # merge, add new pair, rm old pair
+                    merged = True
+                    merged_tok = pre_token[i] + pre_token[i + 1]
+                    new_pre_token.append(merged_tok)
+                    
+                    # 更新相邻的 pairs
+                    if i > 0:
+                        old_pair = (pre_token[i - 1], pre_token[i])
+                        updated_pairs[old_pair] = updated_pairs.get(old_pair, 0) - count
+
+                        new_pair = (pre_token[i-1], merged_tok)
+                        if (new_pair[0] not in special_bytes and 
+                            new_pair[1] not in special_bytes):
+                            updated_pairs[new_pair] = updated_pairs.get(new_pair, 0) + count
+
                     if i + 2 < len(pre_token):
                         old_pair = (pre_token[i + 1], pre_token[i + 2])
-                        if old_pair in pair_to_cnt:
-                            pair_to_cnt[old_pair] = max(0, pair_to_cnt.get(old_pair, 0) - pre_tokens[pre_token])
+                        updated_pairs[old_pair] = updated_pairs.get(old_pair, 0) - count
 
-                        after_pair = (merged_tok, pre_token[i+2])
-                        if after_pair[0] not in special_bytes and after_pair[1] not in special_bytes:
-                            pair_to_cnt[after_pair] = pair_to_cnt.get(after_pair, 0) + pre_tokens[pre_token]
+                        new_pair = (merged_tok, pre_token[i + 2])
+                        if (new_pair[0] not in special_bytes and 
+                            new_pair[1] not in special_bytes):
+                            updated_pairs[new_pair] = updated_pairs.get(new_pair, 0) + count
                     i += 2
                 else:
-                    new_pre_token = new_pre_token + (pre_token[i], )
+                    new_pre_token.append(pre_token[i])
                     i += 1
-            changed_pre_tokens[new_pre_token] = changed_pre_tokens.get(new_pre_token, 0) + pre_tokens[pre_token]
+            # 使用 list 构建后转 tuple，减少内存分配
+            new_pre_token_tuple = tuple(new_pre_token)
+            if merged:
+                new_pre_tokens[new_pre_token_tuple] = new_pre_tokens.get(new_pre_token_tuple, 0) + count
+                del pre_tokens[pre_token]
 
-        pre_tokens = changed_pre_tokens
+        # 更新 pre_tokens
+        for token, count in new_pre_tokens.items():
+            pre_tokens[token] = pre_tokens.get(token, 0) + count
+        
+        # 优化：批量更新 pair_to_cnt 
+        for pair, delta in updated_pairs.items():
+            old_cnt = pair_to_cnt.get(pair, 0)
+            new_cnt = max(0, old_cnt + delta)
+
+            if new_cnt == 0:
+                pair_to_cnt.pop(pair, None)
+            else:
+                pair_to_cnt[pair] = new_cnt
+        
+        # 更新 pair_to_tokens 索引:
+        if merged_pair in pair_to_tokens:
+            del pair_to_tokens[merged_pair]
+        
+        for token in new_pre_tokens.keys():
+            for i in range(len(token) - 1):
+                pair = (token[i], token[i + 1])
+                if pair[0] not in special_bytes and pair[1] not in special_bytes:
+                    if pair not in pair_to_tokens:
+                        pair_to_tokens[pair] = set()
+                    pair_to_tokens[pair].add(token)
         vocab[idx] = merged_pair[0] + merged_pair[1]
         idx += 1
     return vocab, merges
