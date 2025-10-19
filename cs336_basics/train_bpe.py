@@ -5,6 +5,7 @@ import multiprocessing
 from multiprocessing import Pool
 from .pretokenization_example import find_chunk_boundaries, pre_tokenize
 import heapq
+import os
 
 def train_bpe(
     input_path: str,
@@ -28,7 +29,7 @@ def train_bpe(
     # pre-tokenization
     pre_tokens = {}
     with open(input_path, "rb") as f:
-        num_processes = 4
+        num_processes = min(os.cpu_count() or 4, 8) # 自适应并发数
         boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
         args = [] # args pass to pre_tokenize
         for start, end in zip(boundaries[:-1], boundaries[1:]):
@@ -40,22 +41,18 @@ def train_bpe(
             results = pool.starmap(pre_tokenize, args)
         for sub_pre_tokens in results:
             for k, v in sub_pre_tokens.items():
-                if k in pre_tokens:
-                    pre_tokens[k] += v
-                else:
-                    pre_tokens[k] = v
+                pre_tokens[k] = pre_tokens.get(k, 0) + v
     # compute bpe merges
+    # 优化：初始统计，使用累加而非覆盖 dict.get(key, 0)
     pair_to_cnt = {} # 统计词频
-    for pre_token in pre_tokens.keys():
+    for pre_token, count in pre_tokens.items():
         for b1, b2 in zip(pre_token[:-1], pre_token[1:]):
             # 跳过包含特殊 token 的pair
             if b1 in special_bytes or b2 in special_bytes:
                 continue
             pair_of_bytes = (b1, b2)
-            if pair_of_bytes in pair_to_cnt:
-                pair_to_cnt[pair_of_bytes] += pre_tokens[pre_token]
-            else:
-                pair_to_cnt[pair_of_bytes] = pre_tokens[pre_token]
+            pair_to_cnt[pair_of_bytes] = pair_to_cnt.get(pair_of_bytes, 0) + count
+
     while idx < vocab_size:
         # 选择最大频 pair， 仍用排序但加入早停
         pair_to_cnt = dict(sorted(
