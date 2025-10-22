@@ -12,7 +12,7 @@ def find_chunk_boundaries(
 ) -> list[int]:
     """
     Chunk the file into parts that can be counted independently.
-    May return fewer chunks if the boundaries end up overlapping.
+    May return--+end up overlapping.
     """
     assert isinstance(split_special_token, bytes), "Must represent special token as a bytestring"
 
@@ -76,7 +76,7 @@ def pre_tokenize(
 
 if __name__=="__main__":
     ## Usage
-    with open("/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/tinystories_sample_5M.txt", "rb") as f:
+    with open("/home/jq/cs336/assignment1-basics/tests/fixtures/tinystories_sample_5M.txt", "rb") as f:
         num_processes = 10
         boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
 
@@ -98,6 +98,6 @@ if __name__=="__main__":
                     pre_tokens[k] += v
                 else:
                     pre_tokens[k] = v
-        with open("/home/jingqi/CS336_Assignments/assignment1-basics/utils/pre_tokens_parallel.txt", "w") as f:
+        with open("/home/jq/cs336/assignment1-basics/utils/pre_tokens_parallel.txt", "w") as f:
             for k, v in pre_tokens.items():
-                f.write(f"{k}, {v}\n")
+                f.write(f"{k}: {v}\n")
