@@ -32,6 +32,7 @@ class RoPE(nn.Module):
         if token_positions is None:
             seq_len = x.shape[-2]
             token_positions = torch.arange(seq_len, device=x.device)
+        token_positions.unsqueeze(-2)
         # 特征对拆分
         x_reshaped = x.unflatten(-1, (self.d_k // 2, 2))
 

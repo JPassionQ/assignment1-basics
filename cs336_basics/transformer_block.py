@@ -12,7 +12,7 @@ class Transformer_block(nn.Module):
             d_model: int, 
             num_heads: int, 
             d_ff: int,
-            apply_rope: bool=False,
+            apply_rope: bool=True,
             theta: float | None=None,
             max_seq_len: int | None=None,
             dtype: torch.dtype | None=None, 
@@ -23,23 +23,23 @@ class Transformer_block(nn.Module):
         self.d_ff = d_ff
 
         # rmsnorm
-        self.rmsnorm1_layer = RMSNorm(d_model, device=device, dtype=dtype)
-        self.rmsnorm2_layer = RMSNorm(d_model, device=device, dtype=dtype)
+        self.ln1 = RMSNorm(d_model, device=device, dtype=dtype)
+        self.ln2 = RMSNorm(d_model, device=device, dtype=dtype)
         # MHA
-        self.mha_layer = Multihead_self_attention(d_model, num_heads,apply_rope, theta, max_seq_len, dtype=dtype, device=device)
+        self.attn = Multihead_self_attention(d_model, num_heads, apply_rope=apply_rope, theta=theta, max_seq_len=max_seq_len, dtype=dtype, device=device)
         # FFN
-        self.ffn_layer = SwiGLU(d_model, d_ff, device=device, dtype=dtype)
+        self.ffn = SwiGLU(d_model, d_ff, device=device, dtype=dtype)
     def forward(self, x: torch.Tensor, token_positions: torch.Tensor | None=None):
         # sub_layer_1
         # pre-norm
-        norm1_output = self.rmsnorm1_layer(x)
+        norm1_output = self.ln1(x)
         # mha
-        mha_output = self.mha_layer(norm1_output, token_positions)
+        mha_output = self.attn(norm1_output, token_positions)
         # 残差连接
         y1 = x + mha_output
         # sub_layer_2
-        norm2_output = self.rmsnorm2_layer(y1)
+        norm2_output = self.ln2(y1)
         # ffn
-        ffn_output = self.ffn_layer(norm2_output)
+        ffn_output = self.ffn(norm2_output)
 
         return ffn_output + y1

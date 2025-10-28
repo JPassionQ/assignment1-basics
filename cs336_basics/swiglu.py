@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from .linear import Linear
 
 class SwiGLU(nn.Module):
     def __init__(self, d_model: int, d_ff: int, device=None, dtype=None):
@@ -7,17 +8,12 @@ class SwiGLU(nn.Module):
         self.d_model = d_model
         self.d_ff = d_ff
 
-        self.w1 = nn.Parameter(torch.empty(d_ff, d_model, dtype=dtype, device=device))
-        self.w2 = nn.Parameter(torch.empty(d_model, d_ff, dtype=dtype, device=device))
-        self.w3 = nn.Parameter(torch.empty(d_ff, d_model, dtype=dtype, device=device))
-
-        std = torch.math.sqrt(2 / (d_model + d_ff))
-        nn.init.trunc_normal_(self.w1, mean=0, std=std, a=-3 * std, b = 3 * std)
-        nn.init.trunc_normal_(self.w2, mean=0, std=std, a=-3 * std, b = 3 * std)
-        nn.init.trunc_normal_(self.w3, mean=0, std=std, a=-3 * std, b = 3 * std)
+        self.w1 = Linear(d_model, d_ff, device=device, dtype=dtype)
+        self.w2 = Linear(d_ff, d_model, device=device, dtype=dtype)
+        self.w3 = Linear(d_model, d_ff, device=device, dtype=dtype)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        w1_x = x.matmul(self.w1.T)
+        w1_x = self.w1(x)
         silu = (w1_x * torch.sigmoid(w1_x))
-        w3_x = x.matmul(self.w3.T)
-        return silu * (w3_x) @ self.w2.T
+        w3_x = self.w3(x)
+        return self.w2(silu * (w3_x))

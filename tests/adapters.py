@@ -19,6 +19,7 @@ from cs336_basics.rope import RoPE
 from cs336_basics.utils import softmax, scaled_dot_product_attention
 from cs336_basics.multihead_self_attention import Multihead_self_attention
 from cs336_basics.transformer_block import Transformer_block
+from cs336_basics.transformer_lm import Transformer_LM
 
 def run_linear(
     d_in: int,
@@ -159,10 +160,10 @@ def run_multihead_self_attention(
         implementation with the given QKV projection weights and input features.
     """
     MHA_layer = Multihead_self_attention(d_model, num_heads)
-    MHA_layer.load_state_dict({"W_q": q_proj_weight,
-                               "W_k": k_proj_weight,
-                               "W_v": v_proj_weight,
-                               "W_o": o_proj_weight})
+    MHA_layer.load_state_dict({"q_proj.weight": q_proj_weight,
+                               "k_proj.weight": k_proj_weight,
+                               "v_proj.weight": v_proj_weight,
+                               "output_proj.weight": o_proj_weight})
     return MHA_layer(in_features)
     raise NotImplementedError
 
@@ -205,10 +206,10 @@ def run_multihead_self_attention_with_rope(
         implementation with the given QKV projection weights and input features.
     """
     MHA_layer = Multihead_self_attention(d_model, num_heads, apply_rope=True, theta=theta, max_seq_len=max_seq_len)
-    MHA_layer.load_state_dict({"W_q": q_proj_weight,
-                               "W_k": k_proj_weight,
-                               "W_v": v_proj_weight,
-                               "W_o": o_proj_weight})
+    MHA_layer.load_state_dict({"q_proj.weight": q_proj_weight,
+                               "k_proj.weight": k_proj_weight,
+                               "v_proj.weight": v_proj_weight,
+                               "output_proj.weight": o_proj_weight})
     return MHA_layer(in_features, token_positions)
     raise NotImplementedError
 
@@ -308,17 +309,7 @@ def run_transformer_block(
         running the Transformer block on the input features while using RoPE.
     """
     transformer_block = Transformer_block(d_model, num_heads, d_ff, apply_rope=True, theta=theta, max_seq_len=max_seq_len)
-    transformer_block.load_state_dict({
-        "rmsnorm1_layer.g": weights["ln1.weight"],
-        "rmsnorm2_layer.g": weights["ln2.weight"],
-        "mha_layer.W_q": weights["attn.q_proj.weight"],
-        "mha_layer.W_k": weights["attn.k_proj.weight"],
-        "mha_layer.W_v": weights["attn.v_proj.weight"],
-        "mha_layer.W_o": weights["attn.output_proj.weight"],
-        "ffn_layer.w1": weights["ffn.w1.weight"],
-        "ffn_layer.w2": weights["ffn.w2.weight"],
-        "ffn_layer.w3": weights["ffn.w3.weight"]
-    })
+    transformer_block.load_state_dict(weights)
     return transformer_block(in_features)
     raise NotImplementedError
 
@@ -402,6 +393,18 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
+    transformer_lm = Transformer_LM(
+        d_model=d_model,
+        num_heads=num_heads,
+        d_ff=d_ff,
+        vocab_size=vocab_size,
+        context_length=context_length,
+        num_layers=num_layers,
+        apply_rope=True,
+        theta=rope_theta,
+    )
+    transformer_lm.load_state_dict(weights)
+    return transformer_lm(in_indices)
     raise NotImplementedError
 
 
