@@ -17,6 +17,7 @@ from cs336_basics.rmsnorm import RMSNorm
 from cs336_basics.swiglu import SwiGLU
 from cs336_basics.rope import RoPE
 from cs336_basics.utils import softmax, scaled_dot_product_attention
+from cs336_basics.multihead_self_attention import Multihead_self_attention
 
 def run_linear(
     d_in: int,
@@ -156,6 +157,12 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
+    MHA_layer = Multihead_self_attention(d_model, num_heads)
+    MHA_layer.load_state_dict({"W_q": q_proj_weight,
+                               "W_k": k_proj_weight,
+                               "W_v": v_proj_weight,
+                               "W_o": o_proj_weight})
+    return MHA_layer(in_features)
     raise NotImplementedError
 
 
@@ -196,6 +203,12 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
+    MHA_layer = Multihead_self_attention(d_model, num_heads, apply_rope=True, theta=theta, max_seq_len=max_seq_len)
+    MHA_layer.load_state_dict({"W_q": q_proj_weight,
+                               "W_k": k_proj_weight,
+                               "W_v": v_proj_weight,
+                               "W_o": o_proj_weight})
+    return MHA_layer(in_features, token_positions)
     raise NotImplementedError
 
 
