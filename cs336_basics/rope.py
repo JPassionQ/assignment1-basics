@@ -24,11 +24,14 @@ class RoPE(nn.Module):
         self.register_buffer("cos_angles", torch.cos(anlgles), persistent=False)
         self.register_buffer("sin_angles", torch.sin(anlgles), persistent=False)
 
-    def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, token_positions: torch.Tensor | None=None) -> torch.Tensor:
         """
         x: [..., seq_len, d_k]
         token_positions: [..., seq_len]
-        """        
+        """
+        if token_positions is None:
+            seq_len = x.shape[-2]
+            token_positions = torch.arange(seq_len, device=x.device)
         # 特征对拆分
         x_reshaped = x.unflatten(-1, (self.d_k // 2, 2))
 
