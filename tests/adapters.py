@@ -16,7 +16,7 @@ from cs336_basics.embedding import Embedding
 from cs336_basics.rmsnorm import RMSNorm
 from cs336_basics.swiglu import SwiGLU
 from cs336_basics.rope import RoPE
-from cs336_basics.utils import softmax, scaled_dot_product_attention
+from cs336_basics.utils import softmax, scaled_dot_product_attention, cross_entropy
 from cs336_basics.multihead_self_attention import Multihead_self_attention
 from cs336_basics.transformer_block import Transformer_block
 from cs336_basics.transformer_lm import Transformer_LM
@@ -503,6 +503,7 @@ def run_cross_entropy(
     Returns:
         Float[Tensor, ""]: The average cross-entropy loss across examples.
     """
+    return cross_entropy(inputs, targets)
     raise NotImplementedError
 
 

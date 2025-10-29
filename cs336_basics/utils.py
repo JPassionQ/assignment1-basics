@@ -38,3 +38,21 @@ def scaled_dot_product_attention(
     attn_weights = softmax(x=attn_score, dim=-1)
     result = einsum(attn_weights, V, "... i j, ... j d_v -> ... i d_v")
     return result
+
+def cross_entropy(
+        inputs: Float[Tensor, " batch_size vocab_size"], 
+        targets: Int[Tensor, " batch_size"]
+) -> Float[Tensor, ""]:
+    max_values = torch.max(inputs, dim=-1, keepdim=True).values
+    inputs_shifted = inputs - max_values
+
+    negative_targets_logits_sum = torch.sum(-inputs_shifted[torch.arange(inputs.shape[0]), targets])
+
+    exp_inputs = torch.exp(inputs_shifted)
+    exp_sum = torch.sum(exp_inputs, dim=-1, keepdim=True)
+    log_sum = torch.sum(torch.log(exp_sum))
+
+
+    bs = inputs.shape[0]
+    loss = (negative_targets_logits_sum + log_sum) / bs
+    return loss
