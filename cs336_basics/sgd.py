@@ -11,7 +11,7 @@ class SGD(torch.optim.Optimizer):
         super().__init__(params, defaults)
 
     def step(self, closure: Optional[Callable] = None):
-        loss = None if closure is None else closure
+        loss = None if closure is None else closure()
         for group in self.param_groups:
             lr = group['lr']
 

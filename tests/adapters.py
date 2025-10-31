@@ -20,6 +20,7 @@ from cs336_basics.utils import softmax, scaled_dot_product_attention, cross_entr
 from cs336_basics.multihead_self_attention import Multihead_self_attention
 from cs336_basics.transformer_block import Transformer_block
 from cs336_basics.transformer_lm import Transformer_LM
+from cs336_basics.adamw import AdamW
 
 def run_linear(
     d_in: int,
@@ -523,6 +524,7 @@ def get_adamw_cls() -> Any:
     """
     Returns a torch.optim.Optimizer that implements AdamW.
     """
+    return AdamW
     raise NotImplementedError
 
 
