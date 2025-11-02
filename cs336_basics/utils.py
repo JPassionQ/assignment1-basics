@@ -56,3 +56,23 @@ def cross_entropy(
     bs = inputs.shape[0]
     loss = (negative_targets_logits_sum + log_sum) / bs
     return loss
+
+def learning_rate_schedule(
+        t: int,
+        lr_max: float,
+        lr_min: float,
+        T_w: int,
+        T_c: int
+):
+    """
+    有 warmup 阶段的 余弦学习率 调度
+    """
+    # warm-up 阶段
+    if t < T_w:
+        return t / T_w * lr_max
+    # 余弦退火
+    if T_w <= t <= T_c:
+        return lr_min + 0.5 * (1 + math.cos((t - T_w)/(T_c - T_w) * math.pi)) * (lr_max - lr_min)
+    # post-annealing
+    if t > T_c:
+        return lr_min

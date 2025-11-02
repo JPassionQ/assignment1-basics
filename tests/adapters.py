@@ -16,7 +16,7 @@ from cs336_basics.embedding import Embedding
 from cs336_basics.rmsnorm import RMSNorm
 from cs336_basics.swiglu import SwiGLU
 from cs336_basics.rope import RoPE
-from cs336_basics.utils import softmax, scaled_dot_product_attention, cross_entropy
+from cs336_basics.utils import softmax, scaled_dot_product_attention, cross_entropy, learning_rate_schedule
 from cs336_basics.multihead_self_attention import Multihead_self_attention
 from cs336_basics.transformer_block import Transformer_block
 from cs336_basics.transformer_lm import Transformer_LM
@@ -553,6 +553,7 @@ def run_get_lr_cosine_schedule(
     Returns:
         Learning rate at the given iteration under the specified schedule.
     """
+    return learning_rate_schedule(it, max_learning_rate, min_learning_rate, warmup_iters, cosine_cycle_iters)
     raise NotImplementedError
 
 
