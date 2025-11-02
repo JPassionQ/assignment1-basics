@@ -4,6 +4,7 @@ from einops import einsum, rearrange
 import math
 from jaxtyping import Bool, Float, Int
 from torch import Tensor
+from collections.abc import Iterable
 
 def softmax(x: torch.Tensor, dim: int):
     # 减去最大值，保持数值稳定性
@@ -76,3 +77,22 @@ def learning_rate_schedule(
     # post-annealing
     if t > T_c:
         return lr_min
+
+def gradient_clipping(parameters: Iterable[torch.nn.Parameter], 
+                      max_l2_norm: float):
+    total_norm = 0
+    param_list = list(parameters)
+    for param in param_list:
+        if param.grad is not None:
+            param_norm = param.grad.data.norm(2)
+            total_norm += param_norm.item() ** 2
+
+    total_norm = math.sqrt(total_norm)
+    clip_coef = max_l2_norm / total_norm
+    
+    if clip_coef < 1:
+        for param in parameters:
+            if param.grad is not None:
+                param.grad.data.mul_(clip_coef)
+    
+    return total_norm
