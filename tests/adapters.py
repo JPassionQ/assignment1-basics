@@ -16,7 +16,7 @@ from cs336_basics.embedding import Embedding
 from cs336_basics.rmsnorm import RMSNorm
 from cs336_basics.swiglu import SwiGLU
 from cs336_basics.rope import RoPE
-from cs336_basics.utils import softmax, scaled_dot_product_attention, cross_entropy, learning_rate_schedule, gradient_clipping, data_loading
+from cs336_basics.utils import softmax, scaled_dot_product_attention, cross_entropy, learning_rate_schedule, gradient_clipping, data_loading, save_checkpoint, load_checkpoint
 from cs336_basics.multihead_self_attention import Multihead_self_attention
 from cs336_basics.transformer_block import Transformer_block
 from cs336_basics.transformer_lm import Transformer_LM
@@ -575,6 +575,7 @@ def run_save_checkpoint(
             we've completed.
         out (str | os.PathLike | BinaryIO | IO[bytes]): Path or file-like object to serialize the model, optimizer, and iteration to.
     """
+    return save_checkpoint(model, optimizer, iteration, out)
     raise NotImplementedError
 
 
@@ -596,6 +597,7 @@ def run_load_checkpoint(
     Returns:
         int: the previously-serialized number of iterations.
     """
+    return load_checkpoint(src, model, optimizer)
     raise NotImplementedError
 
 
