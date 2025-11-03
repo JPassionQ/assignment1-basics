@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class RoPE(nn.Module):
-    def __init__(self, theta: float, d_k: int, max_seq_len: int, device=None):
+    def __init__(self, theta: float, d_k: int, max_seq_len: int, device: torch.device | None=None):
         """
         theta: float value for the RoPE
         d_k: query 和 key 向量的维度
@@ -13,11 +13,11 @@ class RoPE(nn.Module):
         self.d_k = d_k
         self.max_seq_len = max_seq_len
 
-        k = torch.arange(0, d_k, 2, dtype=torch.float32)
+        k = torch.arange(0, d_k, 2, dtype=torch.float32, device=device)
         freq = 1.0 / (theta ** (k / d_k))
 
         # 预计算位置 i 与 频率的乘积
-        positions = torch.arange(max_seq_len, dtype=torch.float32)
+        positions = torch.arange(max_seq_len, dtype=torch.float32, device=device)
         anlgles = torch.outer(positions, freq)
 
         # 计算 cos 和 sin, 非参数，不参与计算
