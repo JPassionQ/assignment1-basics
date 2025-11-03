@@ -5,6 +5,9 @@ import math
 from jaxtyping import Bool, Float, Int
 from torch import Tensor
 from collections.abc import Iterable
+import numpy as np
+import numpy.typing as npt
+
 
 def softmax(x: torch.Tensor, dim: int):
     # 减去最大值，保持数值稳定性
@@ -96,3 +99,31 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter],
                 param.grad.data.mul_(clip_coef)
     
     return total_norm
+
+
+def data_loading(x: npt.NDArray,
+                batch_size: int,
+                context_length: int,
+                device: str) -> tuple[torch.Tensor, torch.Tensor]:
+    max_start_idx = len(x) - context_length - 1
+    if max_start_idx <= 0:
+        raise ValueError("数据集长度小于所需的最小长度")
+
+    # 随机采样 bs 个起始索引，不包含右端点，所以+1
+    start_indices = np.random.randint(0, max_start_idx + 1, size=batch_size)
+    
+    # 初始化输入和目标数组
+    inputs = np.empty((batch_size, context_length), dtype=x.dtype)
+    targets = np.empty((batch_size, context_length), dtype=x.dtype)
+
+    # 填充输入和目标序列
+    for i, start in enumerate(start_indices):
+        end = start + context_length
+        inputs[i] = x[start: end]
+        targets[i] = x[start + 1: end + 1]
+    
+    # 转换为torch张量并转移到指定设备
+    inputs_tensor = torch.tensor(inputs, dtype=torch.long, device=device)
+    targets_tensor = torch.tensor(targets, dtype=torch.long, device=device)
+
+    return inputs_tensor, targets_tensor
