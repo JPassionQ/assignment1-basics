@@ -1,5 +1,6 @@
 import json
 import regex as re
+import ast
 from typing import Iterator, Iterable
 
 class Tokenizer:
@@ -25,9 +26,19 @@ class Tokenizer:
     @classmethod
     def from_files(cls, vocab_filepath: str, merges_filepath: str, special_tokens: list[str] | None = None):
         with open(vocab_filepath, "r", encoding="utf-8") as f:
-            vocab = json.load(f)
+            vocab_raw = json.load(f)
+            # 【修复 3】将 keys 转回 int，将 values 的字符串（如 "b'\\xe2'"）还原为真正的 bytes 对象
+            vocab = {int(k): ast.literal_eval(v) for k, v in vocab_raw.items()}
+            
+        merges = []
         with open(merges_filepath, "r", encoding="utf-8") as f:
-            merges = [line.strip() for line in f]
+            for line in f:
+                line = line.strip('\n')
+                if not line:
+                    continue
+                # 【修复 4】按 tab 切分，并还原为 bytes 元组
+                p1_str, p2_str = line.split('\t')
+                merges.append((ast.literal_eval(p1_str), ast.literal_eval(p2_str)))
         
         tokenizer = cls(vocab, merges, special_tokens)
         return tokenizer

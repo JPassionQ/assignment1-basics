@@ -7,9 +7,9 @@ import numpy as np
 from tests.test_tokenizer import get_tokenizer_from_vocab_merges_path
 import matplotlib.pyplot as plt
 
-corpus_file = "/home/jq/cs336/assignment1-basics/tests/fixtures/tinystories_sample_5M.txt"
-vocab_file = "/home/jq/cs336/assignment1-basics/tests/fixtures/gpt2_vocab.json"
-merges_file = "/home/jq/cs336/assignment1-basics/tests/fixtures/gpt2_merges.txt"
+corpus_file = "/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/tinystories_sample_5M.txt"
+vocab_file = "/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/gpt2_vocab.json"
+merges_file = "/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/gpt2_merges.txt"
 
 tokenizer = get_tokenizer_from_vocab_merges_path(vocab_file, merges_file, special_tokens=['<unk>', '<pad>', '<sos>', '<eos>'])
 

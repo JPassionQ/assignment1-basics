@@ -41,7 +41,7 @@ def run_linear(
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
     linear_layer = Linear(d_in, d_out)
-    linear_layer.load_state_dict({"W": weights})
+    linear_layer.load_state_dict({"weight": weights})
     return linear_layer(in_features)
     raise NotImplementedError
 
@@ -65,7 +65,7 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
     embedding_layer = Embedding(vocab_size, d_model)
-    embedding_layer.load_state_dict({"embedding": weights})
+    embedding_layer.load_state_dict({"weight": weights})
     return embedding_layer(token_ids)
     raise NotImplementedError
 
@@ -100,9 +100,9 @@ def run_swiglu(
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
     swiglu_layer = SwiGLU(d_model, d_ff)
-    swiglu_layer.load_state_dict({"w1": w1_weight,
-                                  "w2": w2_weight,
-                                  "w3": w3_weight})
+    swiglu_layer.load_state_dict({"w1.weight": w1_weight,
+                                  "w2.weight": w2_weight,
+                                  "w3.weight": w3_weight})
     return swiglu_layer(in_features)
     raise NotImplementedError
 
@@ -430,7 +430,7 @@ def run_rmsnorm(
         RMSNorm of the `in_features`.
     """
     rmsnorm_layer = RMSNorm(d_model, eps)
-    rmsnorm_layer.load_state_dict({"g": weights})
+    rmsnorm_layer.load_state_dict({"weight": weights})
     return rmsnorm_layer(in_features)
     raise NotImplementedError
 
