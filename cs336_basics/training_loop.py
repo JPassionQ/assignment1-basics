@@ -7,24 +7,16 @@ import numpy as np
 from tests.test_tokenizer import get_tokenizer_from_vocab_merges_path
 import matplotlib.pyplot as plt
 
-corpus_file = "/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/tinystories_sample_5M.txt"
-vocab_file = "/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/gpt2_vocab.json"
-merges_file = "/home/jingqi/CS336_Assignments/assignment1-basics/tests/fixtures/gpt2_merges.txt"
+encoded_text = np.load('/home/ubuntu/cs336_assignments/assignment1-basics/data/tinystories_train_encoded.npy')
+encoded_text = encoded_text.astype(np.int64)
 
-tokenizer = get_tokenizer_from_vocab_merges_path(vocab_file, merges_file, special_tokens=['<unk>', '<pad>', '<sos>', '<eos>'])
-
-with open(corpus_file, "r", encoding="utf-8") as f:
-    text = f.read()
-
-encoded_text = np.array(tokenizer.encode(text), dtype=np.int64)
-
-batch_size = 8
-context_length = 128
+batch_size = 16
+context_length = 256
 
 epoch = 1000
-d_model= 768
-n_heads = 12
-layers = 12
+d_model= 512
+n_heads = 16
+layers = 4
 vocab_size = 50257
 lr = 5e-4
 weight_decay=0.01
