@@ -49,7 +49,7 @@ def cross_entropy(
         inputs: Float[Tensor, " batch_size vocab_size"], 
         targets: Int[Tensor, " batch_size"]
 ) -> Float[Tensor, ""]:
-    max_values = torch.max(inputs, dim=-1, keepdim=True).values
+    max_values = torch.max(inputs, dim=-1, keepdim=True).values.detach()
     inputs_shifted = inputs - max_values
 
     negative_targets_logits_sum = torch.sum(-inputs_shifted[torch.arange(inputs.shape[0]), targets])
@@ -83,8 +83,7 @@ def learning_rate_schedule(
     if t > T_c:
         return lr_min
 
-def gradient_clipping(parameters: Iterable[torch.nn.Parameter], 
-                      max_l2_norm: float):
+def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float):
     total_norm = 0
     param_list = list(parameters)
     for param in param_list:
@@ -93,10 +92,11 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter],
             total_norm += param_norm.item() ** 2
 
     total_norm = math.sqrt(total_norm)
-    clip_coef = max_l2_norm / total_norm
+    # 增加 1e-6 防止分母为0 
+    clip_coef = max_l2_norm / (total_norm + 1e-6) 
     
     if clip_coef < 1:
-        for param in parameters:
+        for param in param_list:  # <--- 修复：使用 param_list 而不是 parameters
             if param.grad is not None:
                 param.grad.data.mul_(clip_coef)
     
