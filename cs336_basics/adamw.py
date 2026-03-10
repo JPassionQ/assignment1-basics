@@ -8,8 +8,8 @@ class AdamW(torch.optim.Optimizer):
             self,
             params,
             lr: float,
-            betas: tuple[float],
-            weight_decay: float,
+            betas: tuple[float]=(0.9, 0.95),
+            weight_decay: float=0.01,
             eps: float=1e-8,
         ):
         if lr < 0:
