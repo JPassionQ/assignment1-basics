@@ -52,7 +52,7 @@ def cross_entropy(
     max_values = torch.max(inputs, dim=-1, keepdim=True).values.detach()
     inputs_shifted = inputs - max_values
 
-    negative_targets_logits_sum = torch.sum(-inputs_shifted[torch.arange(inputs.shape[0]), targets])
+    negative_targets_logits_sum = torch.sum(-inputs_shifted[torch.arange(inputs.shape[0], device=inputs.device), targets])
 
     exp_inputs = torch.exp(inputs_shifted)
     exp_sum = torch.sum(exp_inputs, dim=-1, keepdim=True)

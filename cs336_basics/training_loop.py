@@ -49,8 +49,8 @@ wandb.init(project="train_transformer_LM", mode="offline", config=config)
 os.makedirs(config["out_dir"], exist_ok=True)
 
 # 使用 mmap 内存映射模式加载大规模数据 [cite: 1002-1008]
-train_data = np.memmap('/home/ubuntu/cs336_assignments/assignment1-basics/data/tinystories_train_encoded.npy', dtype=np.uint16, mode='r')
-val_data = np.memmap('/home/ubuntu/cs336_assignments/assignment1-basics/data/tinystories_valid_encoded.npy', dtype=np.uint16, mode='r')
+train_data = np.load('/home/ubuntu/cs336_assignments/assignment1-basics/data/tinystories_train_encoded.npy', mmap_mode='r')
+val_data = np.load('/home/ubuntu/cs336_assignments/assignment1-basics/data/tinystories_valid_encoded.npy', mmap_mode='r')
 
 model = Transformer_LM(
     d_model=config["d_model"], 
