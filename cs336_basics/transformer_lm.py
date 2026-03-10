@@ -22,7 +22,7 @@ class Transformer_LM(nn.Module):
             device: torch.device | None=None
     ):
         super().__init__()
-        self.d_model = d_model,
+        self.d_model = d_model
         self.num_heads = num_heads
         self.d_ff = d_ff
         self.vocab_size = vocab_size
