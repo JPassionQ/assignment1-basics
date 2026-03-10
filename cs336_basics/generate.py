@@ -51,7 +51,6 @@ def generate_text(
             if top_p < 1.0:
                 # 将概率降序排序 [cite: 1078]
                 sorted_probs, sorted_indices = torch.sort(probs, descending=True)
-                print(sorted_probs[:5])
                 cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
                 
                 # 截断累积概率超过 top_p 的 token [cite: 1077-1078]
